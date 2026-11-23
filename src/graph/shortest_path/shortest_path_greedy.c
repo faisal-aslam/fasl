@@ -185,17 +185,22 @@ static inline void path_init_best(Path *path_state) {
 
 void add_best_path(const uint8_t *block, Path *path_state) {
     uint16_t level = get_last_level_index();
-    while (1) {        
-        GraphNode *node = get_graph_node(get_level_start_id(level));
-        if (get_level_end_id(level) - get_level_start_id(level) != 1) {
-            fprintf(stderr, "illegal path\n");
+    while (1) {
+        uint32_t s = get_level_start_id(level), e = get_level_end_id(level);
+        if (e - s != 1) {
+            fprintf(stderr, "illegal path: level=%u status=%d nodes=%u (last_level=%u)\n",
+                    level, level_status[level], e - s, get_last_level_index());
+            for (uint32_t i = s; i < e && i < s + 8; i++) {
+                GraphNode *n = get_graph_node(i);
+                fprintf(stderr, "  node id=%u len=%u rle=%u useless=%u offset=%u parent_level=%d\n",
+                        n->node_id, n->sequence_length, n->RLE_type, n->useless, n->offset,
+                        n->node_id ? (int)get_parent_level(n) : -1);
+            }
             abort();
         }
-        //printf("level =%u, seq=", level);
-        //print_node_sequence(node, block);
-        //printf("\n");
-        path_state->path_stack[PATH_BEST][++path_state->path_size[PATH_BEST]] = node->node_id;        
-        if (node->node_id == 0) break; //we are done.
+        GraphNode *node = get_graph_node(s);
+        path_state->path_stack[PATH_BEST][++path_state->path_size[PATH_BEST]] = node->node_id;
+        if (node->node_id == 0) break;
         level = get_parent_level(node);
     }
 }
