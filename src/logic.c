@@ -47,7 +47,9 @@ static inline GraphNode *create_node(uint32_t start, uint8_t length) {
 
 static inline void RLE_level(const uint8_t *block, uint32_t block_index, uint32_t block_size) {
     uint16_t current_level = get_last_level_index();
-    is_RLE_sequence(&rle_info.length_of_RLE, MIN(block_size, 255), block_index, block, &rle_info.RLE_type, &rle_info.RLE_start, &rle_info.RLE_end);
+    uint32_t remaining = block_size - block_index; // never look past the end of the real data
+    is_RLE_sequence(&rle_info.length_of_RLE, (uint8_t)MIN(remaining, 255u), block_index, block,
+                    &rle_info.RLE_type, &rle_info.RLE_start, &rle_info.RLE_end);
     if (rle_info.RLE_type == 0) return;
     // wait for the right level to create node.
     // do not create any RLE nodes before reaching that level.
@@ -76,70 +78,19 @@ static inline void set_RLE_data() {
     }
 }
 
-static inline void compute_best_path_and_write_in_file_with_alpha_beta(const uint8_t *block) {
-    double best_wf = 0.0, best_wl = 0.0;
-    long best_size = LONG_MAX;
-
-    // sweep WEIGHT_FREQ from 0.1 to 0.9, WEIGHT_LEN = 1 - WEIGHT_FREQ
-    for (int i = 1; i <= 9; i++) {
-        WEIGHT_FREQ = i / 10.0;
-        WEIGHT_LEN = 1.0 - WEIGHT_FREQ;
-
-        Path path_state;
-        find_best_saving_path(block, &path_state);
-        if (path_state.path_size[PATH_BEST] <= 0) {
-            continue; // skip invalid
-        }
-
-        final_book_keeping(block, &path_state);
-        set_best_path_view(path_state.path_stack[PATH_BEST], path_state.path_freqs[PATH_BEST],
-                           path_state.path_size[PATH_BEST]);
-
-        long size_of_compressed_file = write_compressed_output(output_file, block);
-
-        printf("WF=%.2f WL=%.2f -> size=%ld\n", WEIGHT_FREQ, WEIGHT_LEN, size_of_compressed_file);
-
-        if (size_of_compressed_file < best_size) {
-            best_size = size_of_compressed_file;
-            best_wf = WEIGHT_FREQ;
-            best_wl = WEIGHT_LEN;
-        }
-    }
-
-    printf("\nBest weights: WF=%.2f WL=%.2f -> size=%ld\n", best_wf, best_wl, best_size);
-
-    // rerun with best weights so output_file has final best result
-    WEIGHT_FREQ = best_wf;
-    WEIGHT_LEN = best_wl;
-
-    Path path_state;
-    find_best_saving_path(block, &path_state);
-    if (path_state.path_size[PATH_BEST] > 0) {
-        final_book_keeping(block, &path_state);
-        set_best_path_view(path_state.path_stack[PATH_BEST], path_state.path_freqs[PATH_BEST],
-                           path_state.path_size[PATH_BEST]);
-        long size_of_compressed_file = write_compressed_output(output_file, block);
-        printf("Written best result to output file, size=%ld\n", size_of_compressed_file);
-    } else {
-        printf("No valid path found for best weights!\n");
-    }
-}
-
-static inline long compute_best_path_and_write_in_file(const uint8_t *block) {
+static inline long compute_best_path_and_write_in_file(const uint8_t *block, uint32_t block_size) {
     Path path_state;
     find_best_saving_path(block, &path_state);
     printf("\n%lu: Computed the best possible path \n", get_elapsed_ms());
     if (path_state.path_size[PATH_BEST] <= 0) {
         printf("No path found\n");
-        return 0; // no path exist
+        return 0;
     }
     final_book_keeping(block, &path_state);
-    // #ifdef DEBUG
     print_path(0, 1, block, &path_state);
-    // #endif
     set_best_path_view(path_state.path_stack[PATH_BEST], path_state.path_freqs[PATH_BEST],
                        path_state.path_size[PATH_BEST]);
-    long size_of_compressed_file = write_compressed_output(output_file, block);
+    long size_of_compressed_file = write_compressed_output(output_fp, block, block_size);
     printf("\n%lu: Written the path in output file sized=%ld \n", get_elapsed_ms(), size_of_compressed_file);
     return size_of_compressed_file;
 }
@@ -211,6 +162,6 @@ long process_block(const uint8_t *block, uint32_t block_size) {
 #ifdef DEBUG
     visualize_graph(block);
 #endif
-    return compute_best_path_and_write_in_file(block);
+    return compute_best_path_and_write_in_file(block, block_size);
     // compute_best_path_and_write_in_file_with_alpha_beta(block);
 }

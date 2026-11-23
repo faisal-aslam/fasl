@@ -5,5 +5,6 @@ SRCS = \
     decompress.c \
     decoder_map.c \
 	../code_classes.c \
+    ../range_coder.c \
     decompress_header.c \
     decompress_body.c
