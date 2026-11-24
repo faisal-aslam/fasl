@@ -212,6 +212,8 @@ void add_best_path(const uint8_t *block, Path *path_state) {
  */
 void find_best_saving_path(const uint8_t *block, Path *path_state) {
 
+    path_init(path_state);   // was missing: path_state was uninitialised stack memory
+
     uint8_t best_seq[SEQ_LENGTH_LIMIT];
     uint8_t best_len;
     uint32_t best_freq;

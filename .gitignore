@@ -16,3 +16,18 @@ push.sh
 
 #ignore build folder
 ./build
+.fasl_backup/
+*.fasl
+*.zst
+*.7z
+*.bin
+*.png
+*.dot
+build/
+compress-profile
+gmon.out
+timing.log
+profile.txt
+val.txt
+log.txt
+back.txt

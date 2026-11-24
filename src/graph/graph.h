@@ -117,6 +117,7 @@ static inline void reset_graph(void) {
 
 static inline GraphNode *get_next_node(void) {
     GraphNode *g_node = &graph.nodes[graph.size++];
+    memset(g_node, 0, sizeof(*g_node));          // clear leftovers from the previous block
     g_node->node_id = graph.size - 1;            // please never change node's id ever.
     g_node->node_level = graph.total_levels - 1; // please do not change this ever too.
     return g_node;

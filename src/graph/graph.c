@@ -139,6 +139,7 @@ void init_graph(void) {
     graph.size = 0;
     graph.total_levels = 0;
     memset(graph.first_node_of_level, 0, sizeof(graph.first_node_of_level));
+    memset(level_status, 0, sizeof(level_status));   // LEVEL_ACTIVE == 0; stale state from the previous block broke compaction
 }
 
 void mass_increment_levels(int add_levels) {
